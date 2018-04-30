@@ -9,19 +9,31 @@ class Block{
         this.data = data;
         this.previoushash = previoushash;
         this.hash = this.calculateHash();
+        this.nonce = 0;
     }
-
 
     calculateHash(){
-        return SHA256(this.index + this.previoushash + this.timestamp + JSON.stringify(this.data)).toString();
+        return SHA256(this.index + this.previoushash + this.timestamp + JSON.stringify(this.data) + this.nonce).toString();
+    }
+
+    mineBlock(difficulty){
+        while(this.hash.substring(0,difficulty) !== Array(difficulty + 1).join("0")){
+            this.nonce++;
+            this.hash = this.calculateHash();
+        } 
+
+        console.log("Block mined : " + this.hash);
     }
 }
+
+// 비트코인의 경우 블록의 해쉬값에 일정한 양의 0을 필요로함
 
 
 class Blockchain{
     constructor(){
         // array of Blocks
         this.chain = [this.createGenesisBlock()];
+        this.difficulty = 4;
 
     }
 
@@ -35,7 +47,7 @@ class Blockchain{
 
     addBlock(newBlock){
         newBlock.previoushash = this.getLatestBlock().hash;
-        newBlock.hash = newBlock.calculateHash();
+        newBlock.mineBlock(this.difficulty);
         this.chain.push(newBlock);
     }
 
@@ -61,9 +73,16 @@ class Blockchain{
 
 
 let creaCoin = new Blockchain();
+console.log('Mining block 1...');
 creaCoin.addBlock(new Block(1, "10/07/2017", { amout : 4}));
+
+console.log('Mining block 2...');
 creaCoin.addBlock(new Block(2, "12/07/2017", { amout : 10}));
 
+
+
+
+/*
 console.log('Is blockchain valid?' + creaCoin.isChainValid());
 
 //  첫번째 코인의 값을 변경하면
@@ -71,7 +90,5 @@ creaCoin.chain[1].data = { amout : 100 };
 creaCoin.chain[1].hash = creaCoin.chain[1].calculateHash();
 console.log('Is blockchain valid?' + creaCoin.isChainValid());
 
-
-
-
 //console.log(JSON.stringify(creaCoin, null, 4));
+*/
