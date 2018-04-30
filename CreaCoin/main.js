@@ -1,12 +1,18 @@
 // npm install --save crypto-js 명령어를 사용해서 설치
 const SHA256 = require('crypto-js/sha256')
 
+class Transaction{
+    constructor(fromAddress, toAddress, amount){
+        this.fromAddress = fromAddress;
+        this.toAddress = toAddress;
+        this.amount = amount;
+    }
+}
 
 class Block{
-    constructor(index, timestamp, data, previoushash = ''){
-        this.index = index;
+    constructor(timestamp, transactions, previoushash = ''){
         this.timestamp = timestamp;
-        this.data = data;
+        this.transactions = transactions;
         this.previoushash = previoushash;
         this.hash = this.calculateHash();
         this.nonce = 0;
@@ -17,12 +23,12 @@ class Block{
     }
 
     mineBlock(difficulty){
-        while(this.hash.substring(0,difficulty) !== Array(difficulty + 1).join("0")){
+        while(this.hash.substring(0, difficulty) !== Array(difficulty + 1).join("0")){
             this.nonce++;
             this.hash = this.calculateHash();
         } 
 
-        console.log("Block mined : " + this.hash);
+        console.log("BLOCK MINED : " + this.hash);
     }
 }
 
@@ -33,22 +39,52 @@ class Blockchain{
     constructor(){
         // array of Blocks
         this.chain = [this.createGenesisBlock()];
-        this.difficulty = 4;
+        this.difficulty = 2;
+        this.pendingTransactions = [];
+        this.miningReward = 100;
 
     }
 
     createGenesisBlock(){
-        return new Block(0, "01/01/2017/", "Genesis block", "0");
+        return new Block(Date.parse("2017-01-01"), [], "0");
     }
 
     getLatestBlock(){
         return this.chain[this.chain.length - 1];
     }
 
-    addBlock(newBlock){
-        newBlock.previoushash = this.getLatestBlock().hash;
-        newBlock.mineBlock(this.difficulty);
-        this.chain.push(newBlock);
+    minePendingTransactions(miningRewardAddress){
+        let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
+        block.mineBlock(this.difficulty);
+
+        console.log('Block successfully mined!');
+        this.chain.push(block);
+
+        this.pendingTransactions = [
+            new Transaction(null, miningRewardAddress, this.miningReward)
+        ];
+    }
+
+    createTransaction(transaction){
+        this.pendingTransactions.push(transaction);
+    }
+
+    getBalanceOfAddress(address){
+        let balance = 0;
+
+        for(const block of this.chain){
+            for(const trans of block.transactions){
+                if(trans.fromAddress === address){
+                    balance -= trans.amount;
+                }
+
+                if(trans.toAddress === address){
+                    balance += trans.amount;
+                }
+            }
+        }
+
+        return balance;
     }
 
     isChainValid(){
@@ -73,16 +109,28 @@ class Blockchain{
 
 
 let creaCoin = new Blockchain();
+creaCoin.createTransaction(new Transaction('address1', 'address2', 100));
+creaCoin.createTransaction(new Transaction('address2', 'address1', 50));
+
+console.log('\n Starting the miner...');
+creaCoin.minePendingTransactions('crea-address');
+
+console.log('\n Balance of crea is', creaCoin.getBalanceOfAddress('crea-address'));
+
+console.log('\n Starting the miner again...');
+creaCoin.minePendingTransactions('crea-address');
+
+console.log('\n Balance of crea is', creaCoin.getBalanceOfAddress('crea-address'));
+
+
+
+/*
 console.log('Mining block 1...');
 creaCoin.addBlock(new Block(1, "10/07/2017", { amout : 4}));
 
 console.log('Mining block 2...');
 creaCoin.addBlock(new Block(2, "12/07/2017", { amout : 10}));
 
-
-
-
-/*
 console.log('Is blockchain valid?' + creaCoin.isChainValid());
 
 //  첫번째 코인의 값을 변경하면
